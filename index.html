@@ -165,17 +165,21 @@
    Set a value to '' to leave that face blank white.
    ========================================================================= */
 const ART = {
-  frontCover:   'images/wg-card-updated_01.jpg', // outside, top half of sheet (prints upside down)
-  frontBack:    'images/wg-card-updated_02.jpg', // outside, bottom half of sheet
+  frontCover:   'images/wg-card-front.jpg',      // outside, top half of sheet (prints upside down)
+  frontBack:    'images/wg-card-updated_01.jpg', // outside, bottom half of sheet
   insideTop:    '',                              // inside, top half    - blank white
   insideBottom: '',                              // inside, bottom half - blank white
 };
 
-/* The front cover prints upside down on the sheet. Set this true when the file you
-   drop in is already in that press orientation (exported straight off the imposed
-   sheet, like wg-card-updated_01.jpg); false when it reads right side up the way the
-   finished card does. Either way the mockup shows it right side up when folded. */
-const FRONT_COVER_IS_PRESS_ORIENTED = true;
+/* Mark a face true when its file sits 180 degrees off from the way the finished card
+   reads - typically because it was exported straight off the imposed press sheet,
+   where the front cover prints upside down. The mockup spins those back so the folded
+   card always reads right way up, and spins them the other way for the press sheet
+   view. The two current files happen to disagree, hence one flag per face. */
+const ROTATED_180 = {
+  frontCover: false,  // wg-card-front.jpg reads right side up
+  frontBack:  true,   // wg-card-updated_01.jpg came off the sheet upside down
+};
 
 /* Which artwork lands on which physical face.
    front = the face pointing at you with the card lying open, inside up.
@@ -193,8 +197,7 @@ function fillFace(face, key){
   if (!src){ face.classList.add('blank'); return; }
   const img = document.createElement('img');
   img.src = src;
-  // already-rotated art cancels out the flip the cover's reverse face applies
-  if (key === 'frontCover' && FRONT_COVER_IS_PRESS_ORIENTED) img.style.transform = 'rotate(180deg)';
+  if (ROTATED_180[key]) img.style.transform = 'rotate(180deg)';
   face.appendChild(img);
 }
 
@@ -338,8 +341,8 @@ document.getElementById('view').addEventListener('click', e => {
 
 /* ---------- flat imposition view ---------- */
 const FLAT = {
-  Outside: [['frontCover', 'Front cover &middot; prints upside down', !FRONT_COVER_IS_PRESS_ORIENTED],
-            ['frontBack',  'Back', false]],
+  Outside: [['frontCover', 'Front cover &middot; prints upside down', !ROTATED_180.frontCover],
+            ['frontBack',  'Back', !!ROTATED_180.frontBack]],
   Inside:  [['insideTop',    'Inside top', false],
             ['insideBottom', 'Inside bottom', false]],
 };
