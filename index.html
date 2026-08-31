@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Folding Card Mockup</title>
+<style>
+  :root{
+    --cream:#F3EDE1; --slate:#2F3A36; --sage:#7C8C6F; --rust:#B4603C;
+    --panel-w: 476px;                 /* 4.75 in wide, scaled */
+    --panel-h: 351px;                 /* 3.50 in tall, scaled */
+    --ui:#1b201e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:#151917; color:var(--cream);
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  /* ---------- top bar ---------- */
+  header{
+    display:flex; flex-wrap:wrap; gap:14px 18px; align-items:center;
+    padding:12px 16px 14px; background:var(--ui); border-bottom:1px solid #2c332f; z-index:5;
+  }
+  /* Arc and other minimal-chrome browsers keep a window-drag strip along the top edge
+     of the web view. Opt out, and keep the slider off the first row so it can't land
+     in that strip and drag the window instead of the handle. */
+  header, header *{ -webkit-app-region:no-drag; app-region:no-drag; }
+  header h1{font-size:14px; font-weight:600; margin:0 8px 0 0; letter-spacing:.04em; text-transform:uppercase; opacity:.75}
+  .grp{display:flex; gap:6px; align-items:center}
+  .grp label{font-size:11px; white-space:nowrap; text-transform:uppercase; letter-spacing:.06em; opacity:.5}
+  button{
+    background:#2b322e; color:var(--cream); border:1px solid #3d4641; border-radius:6px;
+    padding:6px 11px; font-size:12px; cursor:pointer;
+  }
+  button:hover{background:#39423d}
+  button.on{background:var(--sage); border-color:var(--sage); color:#1b201e; font-weight:600}
+  .grp.slider{order:9; width:100%; gap:12px}
+  input[type=range]{flex:1; min-width:160px; accent-color:var(--sage)}
+  .hint{margin-left:auto; font-size:11px; opacity:.45}
+
+  /* ---------- 3D stage ---------- */
+  #stage{
+    flex:1; position:relative; display:flex; align-items:center; justify-content:center;
+    perspective:3000px; cursor:grab; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 40%, #23282600 0%, #0e1211 80%);
+  }
+  #stage.drag{cursor:grabbing}
+  #stage::after{ /* floor shadow */
+    content:""; position:absolute; bottom:11%; left:50%; width:520px; height:40px;
+    transform:translateX(-50%); border-radius:50%;
+    background:radial-gradient(ellipse, rgba(0,0,0,.55), rgba(0,0,0,0) 70%);
+    filter:blur(6px); pointer-events:none;
+  }
+
+  /* #sheet is the size of ONE panel and sits where the BOTTOM half of the card is.
+     The crease is its top edge; the cover panel hangs off that edge. */
+  #sheet{
+    position:relative; width:var(--panel-w); height:var(--panel-h);
+    transform-style:preserve-3d;
+  }
+  .panel{
+    position:absolute; left:0; width:var(--panel-w); height:var(--panel-h);
+    transform-style:preserve-3d;
+  }
+  #pBase{top:0}
+  #pCover{top:calc(var(--panel-h) * -1); transform-origin:50% 100%}   /* hinge on the crease */
+
+  .face{
+    position:absolute; inset:0; backface-visibility:hidden; overflow:hidden;
+    background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.28);
+  }
+  /* A top-fold card turns about a HORIZONTAL crease, so the cover's reverse is flipped
+     top-to-bottom, not left-to-right. That is exactly why the front cover prints upside
+     down on the press sheet. The base is an ordinary back face. */
+  #pCover .face.back{transform:rotateX(180deg)}
+  #pBase  .face.back{transform:rotateY(180deg)}
+  .face img{width:100%; height:100%; object-fit:cover; display:block; pointer-events:none}
+  .face.blank{background:#fdfdfb}
+
+  .tag{   /* small corner pill so it never buries the artwork */
+    position:absolute; top:7px; left:7px; padding:3px 7px; border-radius:4px;
+    background:#171b19; color:var(--cream);
+    font-size:9px; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap;
+    opacity:0; transition:opacity .15s; pointer-events:none;
+  }
+  #sheet.labels .tag{opacity:1}
+
+  /* ---------- flat / imposition view ---------- */
+  #flat{flex:1; display:none; overflow:auto; padding:28px; background:#151917}
+  body.flatmode #stage{display:none}
+  body.flatmode #flat{display:block}
+  #flat h2{font-size:11px; letter-spacing:.12em; text-transform:uppercase; opacity:.5; margin:0 0 8px}
+  .sheets{display:flex; flex-wrap:wrap; gap:34px}
+  .spread{display:flex; flex-direction:column; margin:0 0 26px; box-shadow:0 6px 24px rgba(0,0,0,.5); width:max-content}
+  .spread .cell{position:relative; width:300px; border-bottom:1px dashed rgba(255,255,255,.5)}
+  .spread .cell:last-child{border-bottom:0}
+  .spread .cell .art{width:100%; height:221px; background:#fdfdfb; overflow:hidden}
+  .spread .cell .art img{width:100%; height:100%; object-fit:cover; display:block}
+  .spread .cell.upsidedown .art img{transform:rotate(180deg)}
+  .spread .cell span{
+    display:block; padding:6px 4px; background:#1b201e; font-size:9px; text-align:center;
+    letter-spacing:.05em; text-transform:uppercase; opacity:.7;
+  }
+  .note{font-size:12px; opacity:.55; max-width:620px; margin:0 0 22px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Folding Card Mockup</h1>
+
+  <div class="grp slider">
+    <label>Slide to open / close</label>
+    <input id="fold" type="range" min="0" max="1" step="0.005" value="1">
+  </div>
+
+  <div class="grp">
+    <button data-goto="1">Closed</button>
+    <button data-goto="0.4">Half open</button>
+    <button data-goto="0">Fully open</button>
+    <button id="flip">Flip over</button>
+    <button id="reset">Reset view</button>
+  </div>
+
+  <div class="grp">
+    <button id="labels">Labels</button>
+    <button id="view">Press sheet</button>
+  </div>
+
+  <div class="hint">Drag to rotate &middot; scroll to zoom</div>
+</header>
+
+<div id="stage">
+  <div id="sheet">
+    <div class="panel" id="pCover"></div>
+    <div class="panel" id="pBase"></div>
+  </div>
+</div>
+
+<div id="flat">
+  <p class="note">How the art sits on the press sheet. The card prints on one 4.75 &times; 7 in sheet and folds
+    once across the middle. The front cover prints <em>upside down</em> on the top half &mdash; folding the top
+    half down and forward turns it right side up. Dashed line is the fold.</p>
+  <div class="sheets">
+    <div>
+      <h2>Outside of sheet</h2>
+      <div class="spread" id="flatOutside"></div>
+    </div>
+    <div>
+      <h2>Inside of sheet</h2>
+      <div class="spread" id="flatInside"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   SWAP ARTWORK HERE.
+   Point these at any image (jpg / png / svg). Keeping the same filenames in
+   /images and just overwriting the files works too - no code change needed.
+   Set a value to '' to leave that face blank white.
+   ========================================================================= */
+const ART = {
+  frontCover:   'images/wg-folding-card_01.jpg', // outside, top half of sheet (prints upside down)
+  frontBack:    'images/wg-folding-card_02.jpg', // outside, bottom half of sheet
+  insideTop:    '',                              // inside, top half    - blank white
+  insideBottom: '',                              // inside, bottom half - blank white
+};
+
+/* The front cover prints upside down on the sheet. Set this true when the file you
+   drop in is already in that press orientation (exported straight off the imposed
+   sheet, like wg-folding-card_01.jpg); false when it reads right side up the way the
+   finished card does. Either way the mockup shows it right side up when folded. */
+const FRONT_COVER_IS_PRESS_ORIENTED = true;
+
+/* Which artwork lands on which physical face.
+   front = the face pointing at you with the card lying open, inside up.
+   back  = the reverse of that same panel. */
+const PANELS = [
+  { el:'pCover', front:'insideTop',    frontTag:'Inside top &middot; blank white',
+                 back:'frontCover',    backTag:'Front cover &middot; outside' },
+  { el:'pBase',  front:'insideBottom', frontTag:'Inside bottom &middot; blank white',
+                 back:'frontBack',     backTag:'Back &middot; outside' },
+];
+
+/* ---------- build the faces ---------- */
+function fillFace(face, key){
+  const src = ART[key];
+  if (!src){ face.classList.add('blank'); return; }
+  const img = document.createElement('img');
+  img.src = src;
+  // already-rotated art cancels out the flip the cover's reverse face applies
+  if (key === 'frontCover' && FRONT_COVER_IS_PRESS_ORIENTED) img.style.transform = 'rotate(180deg)';
+  face.appendChild(img);
+}
+
+for (const p of PANELS){
+  const host = document.getElementById(p.el);
+  for (const side of ['front','back']){
+    const face = document.createElement('div');
+    face.className = 'face ' + side;
+    fillFace(face, p[side]);
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.innerHTML = p[side + 'Tag'];
+    face.appendChild(tag);
+    host.appendChild(face);
+  }
+}
+
+/* ---------- folding ---------- */
+const sheet  = document.getElementById('sheet');
+const cover  = document.getElementById('pCover');
+const base   = document.getElementById('pBase');
+const foldEl = document.getElementById('fold');
+let t = 1;                 // 0 = flat open, 1 = fully closed
+
+function applyFold(){
+  // Negative rotateX swings the cover's far edge toward the viewer, then down onto
+  // the base. The small translateZ keeps it from z-fighting with the base when closed.
+  cover.style.transform = `rotateX(${-180 * t}deg) translateZ(${-2.5 * t}px)`;
+
+  // How tall the piece is right now, in panel heights measured from the crease.
+  // Below the crease the base always contributes 1. Above it, a raised cover projects
+  // cos(angle); past 90 deg it is lying over the base and adds nothing.
+  const uMin = -Math.max(0, Math.cos(Math.PI * t));
+  const uMax = 1;
+  spanned = uMax - uMin;
+  centerShift = 0.5 - (uMin + uMax) / 2;   // recentre: the cover is only on one side
+
+  fitZoom();
+}
+
+/* ---------- orbit / zoom ---------- */
+let rx = 16, ry = -24, zoom = 1, userZoom = 1, spanned = 1, centerShift = 0, shiftX = 0, shiftY = 0;
+const stage = document.getElementById('stage');
+
+const PAD = 44;   // breathing room between the piece and the edge of the stage
+
+/* A mid-fold panel leans toward the camera, so perspective makes it bigger on screen
+   than its flat footprint suggests. Rather than model that, take a geometric first
+   guess and then measure what actually landed on screen and correct twice. */
+function fitZoom(){
+  const css = getComputedStyle(document.documentElement);
+  const pw = parseFloat(css.getPropertyValue('--panel-w'));
+  const ph = parseFloat(css.getPropertyValue('--panel-h'));
+  zoom = Math.min((stage.clientWidth  - PAD * 2) / pw,
+                  (stage.clientHeight - PAD * 2) / (ph * spanned),
+                  1.15) * userZoom;
+  shiftX = 0;
+  shiftY = centerShift * ph * zoom;
+  applyView();
+
+  const sr = stage.getBoundingClientRect();
+  for (let i = 0; i < 2; i++){
+    const r = piece();
+    if (!r.w || !r.h) break;
+    if (userZoom <= 1){                       // never fight the user zooming in
+      const s = Math.min((sr.width - PAD * 2) / r.w, (sr.height - PAD * 2) / r.h, 1);
+      if (s < 0.999){ zoom *= s; applyView(); }
+    }
+    const r2 = piece();
+    shiftX += (sr.left + sr.width  / 2) - r2.cx;
+    shiftY += (sr.top  + sr.height / 2) - r2.cy;
+    applyView();
+  }
+}
+
+/* Union of the two panels on screen. #sheet's own box is just the base panel - a
+   preserve-3d container does not grow to cover children that lean out of its plane. */
+function piece(){
+  const a = cover.getBoundingClientRect(), b = base.getBoundingClientRect();
+  const top = Math.min(a.top, b.top), bottom = Math.max(a.bottom, b.bottom);
+  const left = Math.min(a.left, b.left), right = Math.max(a.right, b.right);
+  return { w: right - left, h: bottom - top,
+           cx: (left + right) / 2, cy: (top + bottom) / 2 };
+}
+function applyView(){
+  sheet.style.transform = `translate(${shiftX}px, ${shiftY}px) ` +
+    `scale3d(${zoom},${zoom},${zoom}) rotateX(${rx}deg) rotateY(${ry}deg)`;
+}
+
+let dragging = false, lx = 0, ly = 0;
+const down = e => { dragging = true; stage.classList.add('drag'); lx = e.clientX; ly = e.clientY; };
+const move = e => {
+  if (!dragging) return;
+  ry += (e.clientX - lx) * 0.45;
+  rx += (e.clientY - ly) * 0.35;
+  rx = Math.max(-85, Math.min(85, rx));
+  lx = e.clientX; ly = e.clientY;
+  fitZoom();
+};
+const up = () => { dragging = false; stage.classList.remove('drag'); };
+
+stage.addEventListener('pointerdown', down);
+window.addEventListener('pointermove', move);
+window.addEventListener('pointerup', up);
+stage.addEventListener('wheel', e => {
+  e.preventDefault();
+  userZoom = Math.max(0.4, Math.min(3, userZoom * (e.deltaY > 0 ? 0.92 : 1.08)));
+  fitZoom();
+}, { passive:false });
+
+/* ---------- controls ---------- */
+foldEl.addEventListener('input', () => { t = +foldEl.value; applyFold(); });
+
+let anim = 0;
+function animateTo(target){
+  cancelAnimationFrame(anim);
+  const step = () => {
+    t += (target - t) * 0.16;
+    if (Math.abs(target - t) < 0.002) t = target; else anim = requestAnimationFrame(step);
+    foldEl.value = t;
+    applyFold();
+  };
+  step();
+}
+document.querySelectorAll('[data-goto]').forEach(b =>
+  b.addEventListener('click', () => animateTo(+b.dataset.goto)));
+
+document.getElementById('flip').addEventListener('click', () => { ry += 180; fitZoom(); });
+document.getElementById('reset').addEventListener('click', () => {
+  rx = 16; ry = -24; userZoom = 1; fitZoom();
+});
+window.addEventListener('resize', fitZoom);
+document.getElementById('labels').addEventListener('click', e => {
+  sheet.classList.toggle('labels');
+  e.target.classList.toggle('on', sheet.classList.contains('labels'));
+});
+document.getElementById('view').addEventListener('click', e => {
+  const on = document.body.classList.toggle('flatmode');
+  e.target.classList.toggle('on', on);
+});
+
+/* ---------- flat imposition view ---------- */
+const FLAT = {
+  Outside: [['frontCover', 'Front cover &middot; prints upside down', !FRONT_COVER_IS_PRESS_ORIENTED],
+            ['frontBack',  'Back', false]],
+  Inside:  [['insideTop',    'Inside top', false],
+            ['insideBottom', 'Inside bottom', false]],
+};
+for (const [which, rows] of Object.entries(FLAT)){
+  const host = document.getElementById('flat' + which);
+  for (const [key, label, flip] of rows){
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (flip ? ' upsidedown' : '');
+    const art = document.createElement('div');
+    art.className = 'art';
+    if (ART[key]){
+      const img = document.createElement('img');
+      img.src = ART[key];
+      art.appendChild(img);
+    }
+    const span = document.createElement('span');
+    span.innerHTML = label;
+    cell.append(art, span);
+    host.appendChild(cell);
+  }
+}
+
+// touch devices have no scroll wheel
+if (matchMedia('(pointer: coarse)').matches)
+  document.querySelector('.hint').textContent = 'Drag to rotate';
+
+applyFold();   // also fits and applies the view
+</script>
+</body>
+</html>
