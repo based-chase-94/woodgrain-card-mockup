@@ -9,8 +9,8 @@ with a single fold across the middle.
 
 | Face | File |
 |---|---|
-| Front cover (outside) | `images/wg-folding-card_01.jpg` |
-| Back (outside) | `images/wg-folding-card_02.jpg` |
+| Front cover (outside) | `images/wg-card-updated_01.jpg` |
+| Back (outside) | `images/wg-card-updated_02.jpg` |
 | Inside top | *blank white* |
 | Inside bottom | *blank white* |
 
@@ -26,8 +26,8 @@ Edit the `ART` block at the top of the `<script>` in `index.html`:
 
 ```js
 const ART = {
-  frontCover:   'images/wg-folding-card_01.jpg',
-  frontBack:    'images/wg-folding-card_02.jpg',
+  frontCover:   'images/wg-card-updated_01.jpg',
+  frontBack:    'images/wg-card-updated_02.jpg',
   insideTop:    '',      // '' = blank white
   insideBottom: '',
 };
@@ -42,7 +42,7 @@ those two in.
 
 `FRONT_COVER_IS_PRESS_ORIENTED` says whether the front cover file is *already*
 rotated 180° the way it prints on the sheet. It's `true` now because
-`wg-folding-card_01.jpg` came off the imposed sheet that way. Set it to `false` if a
+`wg-card-updated_01.jpg` came off the imposed sheet that way. Set it to `false` if a
 future export reads right side up the way the finished card does. Either way the
 mockup shows the cover right side up when the card is folded.
 
